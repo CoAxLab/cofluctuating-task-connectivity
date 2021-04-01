@@ -40,7 +40,7 @@ def compute_edge_img(run_img,
 
 
 # Project directory
-project_dir = "/home/javi/Documentos/connectivity-phenotype/pip"
+project_dir = "/home/javi/Documentos/cofluctuating-task-connectivity"
 sys.path.append(project_dir)
 from src import get_denoise_opts
 from src.input_data import get_bold_files, get_confounders_df

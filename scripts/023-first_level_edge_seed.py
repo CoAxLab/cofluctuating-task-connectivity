@@ -17,7 +17,7 @@ import gc
 from nilearn.glm.first_level import make_first_level_design_matrix
 
 # Project directory
-project_dir = "/home/javi/Documentos/connectivity-phenotype/pip"
+project_dir = "/home/javi/Documentos/cofluctuating-task-connectivity"
 sys.path.append(project_dir)
 
 from src.config import get_first_level_edge_opts

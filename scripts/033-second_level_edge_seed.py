@@ -15,7 +15,7 @@ import sys
 from nilearn.glm.second_level import SecondLevelModel
 
 # Project directory
-project_dir = "/home/javi/Documentos/connectivity-phenotype/pip"
+project_dir = "/home/javi/Documentos/cofluctuating-task-connectivity"
 sys.path.append(project_dir)
 from src.first_level import get_contrasts
 
