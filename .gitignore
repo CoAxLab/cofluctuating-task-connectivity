@@ -1,0 +1,6 @@
+# omit all data folder
+data/*
+# omit results, as it's too heavy for github
+results/*
+# omit all pycaches
+**/__pycache__/  

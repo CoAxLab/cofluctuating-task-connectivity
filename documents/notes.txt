@@ -1,0 +1,6 @@
+Discrepancies with the master sheet
+- check sub-1005-> No Stroop in BIDS Folder
+- check sub-3143-> is it 34 or 43? if 43, I need to rename this subject
+- check sub-3251-> No BIDS
+- check sub-4293-> No BIDS
+- check sub-6547-> No BIDS
