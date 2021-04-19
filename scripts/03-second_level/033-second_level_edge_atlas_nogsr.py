@@ -70,7 +70,7 @@ for task_id in ["stroop", "msit"]:
         print("computing second-level maps for task %s and contrast %s" % (task_id, contrast))
 
         # Get first-level effect sizes
-        first_level_dir = opj(project_dir, "results/first-level/edge/shen", "task-%s" % task_id)
+        first_level_dir = opj(project_dir, "results/first-level/edge_nogsr/shen", "task-%s" % task_id)
         first_level_imgs =  get_first_level_files(first_level_dir = first_level_dir,
                                                   subjects = final_subjects,
                                                   contrast = contrast)
@@ -79,7 +79,7 @@ for task_id in ["stroop", "msit"]:
                          design_matrix = design_matrix)
 
         # Save this
-        output_dir = opj(project_dir, "results/second-level/edge/shen/task-%s" % task_id, contrast)
+        output_dir = opj(project_dir, "results/second-level/edge_nogsr/shen/task-%s" % task_id, contrast)
         Path(output_dir).mkdir(exist_ok=True, parents=True)
         save_second_level(second_level, output_dir)
 

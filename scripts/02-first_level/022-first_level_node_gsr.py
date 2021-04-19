@@ -70,7 +70,7 @@ data_dir = opj(project_dir, "data")
 final_subjects = np.loadtxt(opj(data_dir, "subjects_intersect_motion_035.txt"))
 print("first 10 subjects: ", final_subjects[:10])
 
-confounders_regex = "trans|rot|white_matter$|csf$"
+confounders_regex = "trans|rot|white_matter$|csf$|global_signal$"
 print("nuisance covariates: ", confounders_regex)
 
 # Get first level options
@@ -84,10 +84,10 @@ print("number of parallel jobs to run = %d" % n_jobs)
 
 for task_id in ["stroop", "msit"]:
 
-    print("computing first-level edge maps for task %s" % task_id)
+    print("computing first-level node activation maps for task %s" % task_id)
 
     # Define output directory
-    output_dir = opj(project_dir, "results/first-level/node/task-%s" % task_id)
+    output_dir = opj(project_dir, "results/first-level/node_gsr/task-%s" % task_id)
     Path(output_dir).mkdir(exist_ok=True, parents=True)
 
     # Get preprocessed bold images

@@ -14,7 +14,7 @@ import gc
 from pathlib import Path
 import sys
 from cofluctuate_bold_glm import NiftiEdgeSeed
-import json
+#import json
 
 def compute_edge_img(run_img,
                      event_file,
@@ -63,6 +63,11 @@ print("nuisance covariates: ", confounders_regex)
 denoise_opts = get_denoise_opts()
 print("denoise options: ", denoise_opts)
 
+# Peaks
+peaks_dict = dict()
+peaks_dict['positive'] = (-42, 10, 29)
+peaks_dict['negative'] = (0, 46, -12)
+
 # Number of jobs to use
 n_jobs = 10
 print("number of parallel jobs to run = %d" % n_jobs)
@@ -85,13 +90,13 @@ for task_id in ["stroop", "msit"]:
     event_file = opj(data_dir, "task-%s_events.tsv" % task_id)
 
     # open peak coordinates
-    peaks_dir = opj(project_dir, "results/second-level/node/task-%s/Incongruent-Congruent/" % task_id)
-    with open(opj(peaks_dir, "peaks.json"), "r") as f:
-        peaks_dict = json.load(f)
+ #   peaks_dir = opj(project_dir, "results/second-level/node/task-%s/Incongruent-Congruent/" % task_id)
+  #  with open(opj(peaks_dir, "peaks.json"), "r") as f:
+   #     peaks_dict = json.load(f)
 
     for peak_type in ["positive", "negative"]:
 
-        peak_coords = tuple(list(peaks_dict[peak_type]))
+        peak_coords = peaks_dict[peak_type]
 
         print("computing edge imgs for task %s and seed type %s and coordinates" % (task_id, peak_type), peak_coords)
 

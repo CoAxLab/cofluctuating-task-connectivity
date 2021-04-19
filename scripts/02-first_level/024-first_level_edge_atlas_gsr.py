@@ -20,8 +20,8 @@ from nilearn.glm.first_level import make_first_level_design_matrix
 project_dir = "/home/javi/Documentos/cofluctuating-task-connectivity"
 sys.path.append(project_dir)
 
-from src import get_first_level_opts
-from src.input_data import get_edge_files
+from src import get_first_level_edge_opts
+from src.input_data import get_edge_files, get_confounders_df
 from src.utils import create_edge_mask_from_atlas
 from src.first_level import get_contrasts
 
@@ -80,7 +80,7 @@ print("atlas file: ", atlas_file)
 mask_img = create_edge_mask_from_atlas(atlas_file)
 
 # Get first level options
-first_level_opts = get_first_level_opts()
+first_level_opts =  get_first_level_edge_opts()
 n_task_scans = 280 # Stroop, MSIT
 frame_times = np.arange(n_task_scans)*first_level_opts['t_r']
 n_rest_scans = 150 # Resting
@@ -94,42 +94,55 @@ for task_id in ["stroop", "msit", "rest"]:
     print("computing first-level edge maps for task %s" % task_id)
 
     # Get preprocessed bold images
-    edge_imgs_dir = opj(project_dir, "results/edge_imgs/shen", "task-%s" % task_id)
+    edge_imgs_dir = opj(project_dir, "results/edge_imgs_gsr/shen", "task-%s" % task_id)
     edge_bold_imgs = get_edge_files(task_id = task_id,
                                      edges_bold_dir = edge_imgs_dir,
                                      subjects = final_subjects)
+    # Get motion outliers confounders
+    confounders_dir = opj(project_dir, "data/confounders", "task-%s" % task_id)
+    confounders_df = get_confounders_df(task_id = task_id,
+                                        confounders_dir = confounders_dir,
+                                        subjects = final_subjects,
+                                        confounders_regex='motion_outlier')
 
     # build design matrices and get contrasts
     if task_id=="rest":
-        design_matrix = pd.DataFrame({'constant': [1]*n_rest_scans}) # Just a constant, we don't have events here
+        intercept_dm = pd.DataFrame({'constant': [1]*n_rest_scans}) # Just a constant, we don't have events here
+        design_matrices = [pd.concat([intercept_dm, motion_df], axis=1) for motion_df in confounders_df]
+
         contrasts = get_contrasts(intercept_only=True)
     else:
         events_file = opj(data_dir, "task-%s_events.tsv" % task_id)
         events = pd.read_csv(events_file, sep="\t")
-        design_matrix =  make_first_level_design_matrix(frame_times = frame_times,
-                                                        events = events,
-                                                        hrf_model=first_level_opts['hrf_model'],
-                                                        drift_model = first_level_opts['drift_model']
-                                                        )
+        design_matrices = [make_first_level_design_matrix(frame_times = frame_times,
+                                                          events = events,
+                                                          hrf_model=first_level_opts['hrf_model'],
+                                                          drift_model = first_level_opts['drift_model'],
+                                                          add_regs = motion_df) for motion_df in confounders_df]
         contrasts = get_contrasts(intercept_only=False)
 
-    print("design matrix dimensions: ", design_matrix.shape)
-    print("regressors: ", design_matrix.columns)
+    print("design matrix dimensions: ", [dm.shape for dm in design_matrices])
+    print("regressors: ", [dm.columns for dm in design_matrices])
     print("contrasts: ", contrasts)
 
-    output_dir = opj(project_dir, "results/first-level/edge/task-%s" % task_id)
+    output_dir = opj(project_dir, "results/first-level/edge_gsr/shen", "task-%s" % task_id)
     Path(output_dir).mkdir(exist_ok=True, parents=True)
 
-    parallel = Parallel(n_jobs = n_jobs)
+    # Save design matrices
+    dm_output_dir = opj(output_dir, "design_matrices")
+    Path(dm_output_dir).mkdir(exist_ok=True, parents=True)
+    for dm, subj in zip(design_matrices, final_subjects):
+        dm.to_csv(opj(dm_output_dir, "sub-%d_dm.csv" % subj), index = False)
 
+    parallel = Parallel(n_jobs = n_jobs)
     parallel(delayed(edge_img_first_level)(run_img = run_img,
-                                           design_matrix = design_matrix,
+                                           design_matrix = dm,
                                            first_level_opts = first_level_opts,
                                            subject_id = subject_id,
                                            output_dir = output_dir,
                                            contrasts = contrasts,
                                            mask_img = mask_img) \
-            for run_img, subject_id in tqdm(zip(edge_bold_imgs, final_subjects))
+            for run_img, dm, subject_id in tqdm(zip(edge_bold_imgs, design_matrices, final_subjects))
             )
 
     del parallel
