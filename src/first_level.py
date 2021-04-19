@@ -44,5 +44,5 @@ def get_contrasts(intercept_only):
     if intercept_only:
         contrasts = ["constant"]
     else:
-        contrasts = ["constant", "Congruent", "Incongruent", "Incongruent-Congruent"]
+        contrasts = ["constant", "Congruent", "Incongruent", "Incongruent-Congruent", "Congruent-constant", "Incongruent-constant"]
     return contrasts
