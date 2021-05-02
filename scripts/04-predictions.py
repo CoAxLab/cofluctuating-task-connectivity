@@ -6,6 +6,11 @@ from tqdm import tqdm
 from pathlib import Path
 from os.path import join as opj
 
+import shutil
+import tempfile
+import gc
+from joblib import delayed, Parallel
+
 from scipy.spatial.distance import squareform
 from nilearn.glm.first_level import compute_regressor
 from nilearn.image import load_img
@@ -64,7 +69,11 @@ def estimate_model(idxs, edge_imgs_2d, list_confs):
 def prediction(intercepts_avg, betas_avg):
     return intercepts_avg + X.dot(betas_avg.T)
 
-def _compute_score_cv(edge_imgs_2d, list_confs, n_splits, seed):
+def _compute_score_cv(within_task,
+                      confs_within,
+                      between_task,
+                      n_splits,
+                      seed):
 
     import numpy as np
     from sklearn.metrics import r2_score
@@ -73,63 +82,36 @@ def _compute_score_cv(edge_imgs_2d, list_confs, n_splits, seed):
     cv = KFold(n_splits=n_splits, shuffle=True, random_state=seed)
     dummy_X = np.zeros(shape=(n_subjects, n_subjects))
 
-    n_links = edge_imgs_2d.shape[-1]
+    n_links = within_task.shape[-1]
 
-    rsquare_scores = np.zeros(shape=(n_splits, n_links))
-    pearson_scores = np.zeros(shape=(n_splits, n_links))
+    rsquare_within = np.zeros(shape=(n_splits, n_links))
+    pearson_within = np.zeros(shape=(n_splits, n_links))
+
+    rsquare_between = np.zeros(shape=(n_splits, n_links))
+    pearson_between = np.zeros(shape=(n_splits, n_links))
 
     for i_split, (train_idxs, test_idxs) in enumerate(cv.split(dummy_X)):
         # Estimate model
-        intercepts_avg, betas_avg = estimate_model(train_idxs, edge_imgs_2d, list_confs)
+        intercepts_avg, betas_avg = estimate_model(train_idxs, within_task, confs_within)
 
         # Prediction using this estimation
         Y_pred = prediction(intercepts_avg, betas_avg)
 
         # test
-        Y_test_avg = edge_imgs_2d[test_idxs,:,:].mean(0)
+        Y_test_within = within_task[test_idxs,:,:].mean(0)
+        Y_test_between = between_task[test_idxs,:,:].mean(0)
 
-        rsquare_scores[i_split,:] = [r2_score(Y_test_avg[:,ii], Y_pred[:,ii]) for ii in range(n_links)]
-        pearson_scores[i_split,:] = [np.corrcoef(Y_test_avg[:,ii], Y_pred[:,ii])[0,1] for ii in range(n_links)]
+        rsquare_within[i_split,:] = [r2_score(Y_test_within[:,ii], Y_pred[:,ii]) for ii in range(n_links)]
+        pearson_within[i_split,:] = [np.corrcoef(Y_test_within[:,ii], Y_pred[:,ii])[0,1] for ii in range(n_links)]
 
-    return rsquare_scores.mean(axis=0), pearson_scores.mean(axis=0)
+        rsquare_between[i_split,:] = [r2_score(Y_test_between[:,ii], Y_pred[:,ii]) for ii in range(n_links)]
+        pearson_between[i_split,:] = [np.corrcoef(Y_test_between[:,ii], Y_pred[:,ii])[0,1] for ii in range(n_links)]
 
-def compute_scores(task_id, n_splits = 3, n_shuffles=20, n_jobs=1):
-
-    import shutil
-    import tempfile
-    import gc
-    from joblib import delayed, Parallel
-
-    edge_imgs_2d, list_confs = load_data(task_id=task_id)
-    edge_imgs_2d = np.array(edge_imgs_2d)
-
-    temp_dir = tempfile.mkdtemp()
-
-    edge_imgs_2d_mem = np.memmap(temp_dir + "/" + "edge_imgs_2d.npy",
-                                 dtype = edge_imgs_2d.dtype,
-                                 shape = edge_imgs_2d.shape,
-                                 mode='w+')
-
-    edge_imgs_2d_mem[:] = edge_imgs_2d[:]
-    del edge_imgs_2d
-
-    parallel = Parallel(n_jobs=n_jobs)
-    res = parallel(delayed(_compute_score_cv)(edge_imgs_2d_mem,
-                                                   list_confs,
-                                                   n_splits,
-                                                   seed)
-                   for seed in tqdm(range(n_shuffles))
-                  )
-
-    r2_scores_edges, pearson_scores_edges = zip(*res)
-
-    shutil.rmtree(temp_dir)
-    del parallel
-    _ = gc.collect()
-
-    return np.array(r2_scores_edges), np.array(pearson_scores_edges)
+    return rsquare_within, pearson_within, rsquare_between, pearson_between
 
 
+#################################################################################
+################### 0-Some definitions for the scrpit ##########################
 
 project_dir = "/home/javi/Documentos/cofluctuating-task-connectivity"
 
@@ -145,7 +127,15 @@ print("Repetition time", t_r)
 
 frame_times = np.arange(n_scans)*t_r
 
-## Compute input matrix for predictions, i.e., the task effects
+n_splits = 3 # 3-Fold CV for out-of-sample performance
+n_shuffles = 20 # Repeat this 20 times
+n_jobs = 10 # Number of parallel jobs that will run a CV each
+
+#################################################################################
+################### 1-Create input matrix of task effects #######################
+
+print("Creating input matrix of task effects...")
+
 task_events = pd.read_csv(opj(project_dir, "data/task-stroop_events.tsv"), sep="\t")
 
 inc_cond = task_events[task_events.loc[:,"trial_type"]=="Incongruent"].to_numpy().T
@@ -169,22 +159,91 @@ output_dir = Path(opj(project_dir, "results/generalizability/gsr"))
 output_dir.mkdir(exist_ok=True, parents=True)
 output_dir = output_dir.resolve().as_posix()
 
-print("computing scores for stroop task")
-r2_scores_edges_stroop, pearson_scores_edges_stroop = compute_scores(task_id = "stroop",
-                                                                     n_splits = 3,
-                                                                     n_shuffles=20,
-                                                                     n_jobs=10)
+#################################################################################
+################### 2-Loading edge imgs and motion ouliers ######################
+print("Loading data...")
 
-np.savez(opj(output_dir, "scores_stroop.npz"),
-         r2_scores_edges = r2_scores_edges_stroop,
-         pearson_scores_edges = pearson_scores_edges_stroop)
+temp_dir = tempfile.mkdtemp()
+
+edges_stroop, list_confs_stroop = load_data(task_id="stroop")
+edges_stroop = np.array(edges_stroop)
+# Convert edges data to memmap array, in order not to blow RAM memory
+edges_stroop_mem = np.memmap(temp_dir + "/" + "edges_stroop.npy",
+                             dtype = edges_stroop.dtype,
+                             shape = edges_stroop.shape,
+                             mode='w+')
+edges_stroop_mem[:] = edges_stroop[:]
+del edges_stroop
+
+edges_msit, list_confs_msit = load_data(task_id="msit")
+edges_msit = np.array(edges_msit)
+# Convert edges data to memmap array, in order not to blow RAM memory
+edges_msit_mem = np.memmap(temp_dir + "/" + "edges_msit..npy",
+                             dtype = edges_msit.dtype,
+                             shape = edges_msit.shape,
+                             mode='w+')
+edges_msit_mem[:] =  edges_msit[:]
+del edges_msit
 
 
-print("computing scores for MSIT task")
-r2_scores_edges_msit, pearson_scores_edges_msit = compute_scores(task_id = "msit",
-                                                                     n_splits = 3,
-                                                                     n_shuffles=20,
-                                                                     n_jobs=10)
-np.savez(opj(output_dir, "scores_msit.npz"),
-         r2_scores_edges = r2_scores_edges_msit,
-         pearson_scores_edges = pearson_scores_edges_msit)
+##################################################################################
+################### 3-Within and between tasks performance #######################
+
+# First, using stroop as training test
+print("Stroop as training...")
+
+parallel = Parallel(n_jobs=n_jobs)
+res = parallel(delayed(_compute_score_cv)(within_task = edges_stroop_mem,
+                                          confs_within = list_confs_stroop,
+                                          between_task =  edges_msit_mem,
+                                          n_splits = n_splits,
+                                          seed= seed)
+               for seed in tqdm(range(n_shuffles))
+              )
+
+r2_stroop_stroop, pearson_stroop_stroop,  r2_stroop_msit, pearson_stroop_msit = zip(*res)
+
+np.savez(opj(output_dir, "scores_stroop_stroop.npz"),
+         r2_scores = np.array(r2_stroop_stroop),
+         pearson_scores = np.array(pearson_stroop_stroop)
+        )
+
+np.savez(opj(output_dir, "scores_stroop_msit.npz"),
+         r2_scores = np.array(r2_stroop_msit),
+         pearson_scores = np.array(pearson_stroop_msit)
+        )
+
+
+del parallel
+_ = gc.collect()
+
+# Second, using MSIT as training
+print("MSIT as training...")
+
+parallel = Parallel(n_jobs=n_jobs)
+res = parallel(delayed(_compute_score_cv)(within_task = edges_msit_mem,
+                                          confs_within = list_confs_msit,
+                                          between_task =  edges_stroop_mem,
+                                          n_splits = n_splits,
+                                          seed= seed)
+               for seed in tqdm(range(n_shuffles))
+              )
+
+r2_msit_msit, pearson_msit_msit, r2_msit_stroop, pearson_msit_stroop = zip(*res)
+
+np.savez(opj(output_dir, "scores_msit_msit.npz"),
+         r2_scores = np.array(r2_msit_msit),
+         pearson_scores = np.array(pearson_msit_msit)
+        )
+
+np.savez(opj(output_dir, "scores_msit_stroop.npz"),
+         r2_scores = np.array(r2_msit_stroop),
+         pearson_scores = np.array(pearson_msit_stroop)
+        )
+
+
+del parallel
+_ = gc.collect()
+
+shutil.rmtree(temp_dir)
+
