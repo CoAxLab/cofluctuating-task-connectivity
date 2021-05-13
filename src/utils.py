@@ -94,3 +94,11 @@ def create_edge_mask_from_atlas(atlas_file):
     
     return mask_img
     
+def t_to_r(t, df):
+    """
+    Function to convert a t-statistic to a pearson correlation
+    https://sscc.nimh.nih.gov/sscc/gangc/tr.html
+    """
+    sign = np.sign(t)
+    rsquare = t**2/(t**2 + df)
+    return sign*np.sqrt(rsquare)

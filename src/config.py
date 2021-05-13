@@ -6,7 +6,7 @@
 _T_R = 2.0
 _HIGH_PASS = 1/187.
 _DETREND = False
-_FIR_DELAYS = list(range(1,10))
+_FIR_DELAYS = list(range(1, 13)) # NEW: Modelling response up to 24 secs #list(range(1,10))
 
 def get_denoise_opts():
     
