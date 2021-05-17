@@ -22,7 +22,7 @@ from src.utils import create_edge_mask_from_atlas
 
 def save_second_level(second_level, output_dir):
     """
-    Function just to save first level results for a set of 
+    Function just to save first level results for a set of
     contrasts
     """
 
@@ -64,6 +64,29 @@ second_level = SecondLevelModel(mask_img = mask_img)
 for task_id in ["stroop", "msit"]:
 
     contrasts = get_contrasts(intercept_only=False)
+
+    for contrast in contrasts:
+
+        print("computing second-level maps for task %s and contrast %s" % (task_id, contrast))
+
+        # Get first-level effect sizes
+        first_level_dir = opj(project_dir, "results/first-level/edge_nogsr/shen", "task-%s" % task_id)
+        first_level_imgs =  get_first_level_files(first_level_dir = first_level_dir,
+                                                  subjects = final_subjects,
+                                                  contrast = contrast)
+        # Fit this list to a constant to compute one-same t-test
+        second_level.fit(second_level_input = first_level_imgs,
+                         design_matrix = design_matrix)
+
+        # Save this
+        output_dir = opj(project_dir, "results/second-level/edge_nogsr/shen/task-%s" % task_id, contrast)
+        Path(output_dir).mkdir(exist_ok=True, parents=True)
+        save_second_level(second_level, output_dir)
+
+
+for task_id in ["rest"]:
+
+    contrasts = get_contrasts(intercept_only=True)
 
     for contrast in contrasts:
 
