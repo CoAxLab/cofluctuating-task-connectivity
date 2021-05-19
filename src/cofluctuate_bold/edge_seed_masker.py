@@ -1,12 +1,13 @@
-# The only thing that chages between both is 
-
-from nilearn.input_data import NiftiSpheresMasker, NiftiMasker
-from nilearn.image import load_img, new_img_like
+import os
 import numpy as np
 import pandas as pd
-import os
 
-from .utils import create_task_confounders, denoise_task, standardize
+from nilearn.input_data import NiftiSpheresMasker, NiftiMasker
+from nilearn.image import load_img
+
+from sklearn.utils import check_array
+
+from .utils import create_task_confounders, denoise, standardize, band_pass_dct
 
 class NiftiEdgeSeed():
 
@@ -17,10 +18,9 @@ class NiftiEdgeSeed():
                  smoothing_fwhm = None,
                  detrend = False,
                  low_pass = None,
-                 high_pass = None, 
+                 high_pass = None,
                  t_r = None,
-                 fir_delays=[0]
-                 ):
+                 fir_delays=[0]):
 
         self.seed = seed
         self.radius = radius
@@ -32,18 +32,46 @@ class NiftiEdgeSeed():
         self.t_r = t_r
         self.fir_delays = fir_delays
 
-    def fit_transform(self,
-                      run_img,
-                      events=None,
-                      confounds=None):
+    def fit(self):
+        """Fit function for scikit-compatibility. it pnly carries checks on the input params"""
+
+        return self
+
+    def transform(self,
+                  run_img,
+                  events=None,
+                  confounds=None):
 
         run_img = load_img(run_img)
         n_scans = run_img.shape[3]
-
+        start_time = 0
+        end_time = (n_scans - 1)*self.t_r
+        frame_times = np.linspace(start_time, end_time, n_scans)
         #TODO: See if it makes sense to create a function for this
         # or a base class that has this method
 
-        # 1- Load and compute FIR events
+        # 1- Get seed region
+        seed_masker = NiftiSpheresMasker(seeds=[self.seed],
+                                         radius=self.radius,
+                                         detrend=None,
+                                         low_pass=None,
+                                         high_pass=None,
+                                         t_r=self.t_r,
+                                         standardize=False)
+        seed_ts = seed_masker.fit_transform(run_img)
+
+        # 2- Get voxel data from a brain mask
+        brain_mask = NiftiMasker(mask_img=self.mask_img,
+                                 smoothing_fwhm=self.smoothing_fwhm,
+                                 detrend=None,
+                                 low_pass=None,
+                                 high_pass=None,
+                                 t_r=self.t_r,
+                                 standardize=False)
+
+        brain_ts = brain_mask.fit_transform(run_img)
+
+        # 3-Load and compute FIR events
         task_conf = None
         if events is not None:
             if isinstance(events, str):
@@ -51,58 +79,56 @@ class NiftiEdgeSeed():
                 assert events.endswith("events.tsv")
                 events_mat = pd.read_csv(events, sep="\t")
 
-                start_time = 0
-                end_time = (n_scans - 1)* self.t_r
-                frame_times = np.linspace(start_time, end_time, n_scans)
                 task_conf = create_task_confounders(frame_times, events_mat,
-                                                    fir_delays = self.fir_delays)
-
-            elif isinstance(events, np.ndarray):
+                                                    fir_delays=self.fir_delays)
+            else:
                 # You can supply a given task matrix to denoise
-                task_conf = events
-
-        self.task_conf_ = task_conf
-
-        # 2- Get seed region and clean it
-        seed_masker = NiftiSpheresMasker(seeds = [self.seed],
-                                         radius = self.radius,
-                                         detrend = self.detrend,
-                                         low_pass = self.low_pass,
-                                         high_pass = self.high_pass,
-                                         t_r = self.t_r,
-                                         standardize = False)
-        seed_ts_conf = seed_masker.fit_transform(run_img, confounds=confounds)
-        self.seed_ts_conf_ = seed_ts_conf.copy()
-
-        if events is not None:
-            seed_ts_conf_task = denoise_task(X = task_conf, Y = seed_ts_conf)
+                task_conf = check_array(events)
         else:
-            seed_ts_conf_task = seed_ts_conf
-        self.seed_ts_conf_task_ = seed_ts_conf_task.copy()
+            task_conf = np.array([]).reshape(n_scans, 0)
 
-        seed_ts_zscore = standardize(seed_ts_conf_task)
-
-        # 2- Get voxel data from a brain mask
-        brain_mask = NiftiMasker(mask_img = self.mask_img,
-                                 smoothing_fwhm = self.smoothing_fwhm,
-                                 detrend = self.detrend,
-                                 low_pass = self.low_pass,
-                                 high_pass = self.high_pass,
-                                 t_r = self.t_r,
-                                 standardize = False)
-        brain_ts_conf = brain_mask.fit_transform(run_img, confounds=confounds)
-        self.brain_ts_conf_ = brain_ts_conf.copy()
-
-        if events is not None:
-            brain_ts_conf_task = denoise_task(X = task_conf, Y = brain_ts_conf)
+        # 3-Create matrix of drifts
+        if (self.high_pass is not None) | (self.low_pass is not None):
+            drifts_mat = band_pass_dct(high_pass = self.high_pass,
+                                       low_pass = self.low_pass,
+                                       frame_times = frame_times)
         else:
-            brain_ts_conf_task = brain_ts_conf
-        self.brain_ts_conf_task_ = brain_ts_conf_task.copy()
+            drifts_mat = np.array([]).reshape(n_scans, 0)
 
-        brain_ts_zscore = standardize(brain_ts_conf_task)
+        # 4- Create other confounders matrix
+        if confounds is None:
+            conf_mat = np.array([]).reshape(n_scans, 0)
+        else:
+            conf_mat = check_array(confounds)
 
-        # 3- Multiply seed region with brain
-        edge_ts = brain_ts_zscore*seed_ts_zscore
-        # Resulting data back to img space
-        edge_ts_img = brain_mask.inverse_transform(edge_ts)
-        return edge_ts_img
+        # 5-Create denoising matrix
+        denoise_mat = np.column_stack((task_conf, conf_mat, drifts_mat))
+        self.denoise_mat_ = denoise_mat
+
+        if denoise_mat.shape[1] > 0:
+            seed_ts_denoised = denoise(X=denoise_mat, Y = seed_ts)
+            brain_ts_denoised = denoise(X=denoise_mat, Y = brain_ts)
+        else:
+            seed_ts_denoised = seed_ts
+            brain_ts_denoised = brain_ts
+
+        self.seed_ts_denoised_ = seed_ts_denoised.copy()
+        self.brain_ts_denoised_ = brain_ts_denoised.copy()
+
+        # 6-Standardize both objects
+        seed_ts_denoised = standardize(seed_ts_denoised)
+        brain_ts_denoised = standardize(brain_ts_denoised)
+
+        # 7- Multiply seed region with brain
+        edge_ts = brain_ts_denoised*brain_ts_denoised
+        edge_img = brain_mask.inverse_transform(edge_ts) # Resulting data back to img space
+        return edge_img
+
+    def fit_transform(self,
+                      run_img,
+                      events = None,
+                      confounds = None):
+
+            return self.fit().transform(run_img,
+                                        events = events,
+                                        confounds = confounds)
