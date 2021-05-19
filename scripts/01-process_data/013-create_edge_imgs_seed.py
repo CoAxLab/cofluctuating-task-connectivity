@@ -112,6 +112,16 @@ for task_id in ["stroop", "msit"]:
                          "results/edge_imgs/seed_gsr/task-%s" % task_id,
                          peak_type)
         Path(output_dir).mkdir(exist_ok=True, parents=True)
+        # This is to save intermediate files
+        Path(opj(output_dir,
+                 "denoised_seed_time_series")).mkdir(exist_ok = True,
+                                                     parents = True)
+        Path(opj(output_dir,
+                 "denoised_brain_time_series")).mkdir(exist_ok = True,
+                                                      parents = True)
+        Path(opj(output_dir,
+                 "denoising_mats")).mkdir(exist_ok = True,
+                                                      parents = True)
 
         parallel = Parallel(n_jobs = n_jobs)
 
@@ -119,7 +129,7 @@ for task_id in ["stroop", "msit"]:
                                            event_file = event_file,
                                            confounds = conf_df,
                                            seed = peak_coords,
-                                           radius = 8.0, # 8 mm of radius, to have some something beyond 6 mm for 
+                                           radius = 8.0, # 8 mm of radius
                                            mask_img = mask_img,
                                            smoothing_fwhm = 6.0,
                                            denoise_opts = denoise_opts,
