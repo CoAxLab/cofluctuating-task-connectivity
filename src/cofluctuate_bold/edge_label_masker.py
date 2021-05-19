@@ -1,12 +1,14 @@
+import os
 import numpy as np
 import pandas as pd
-import os
 
 from nilearn.input_data import NiftiLabelsMasker
 from nilearn.image import load_img, new_img_like
 
-from .utils import create_task_confounders, denoise, standardize, band_pass_dct
 from sklearn.utils import check_array
+
+from .utils import create_task_confounders, denoise, standardize, band_pass_dct
+
 
 def compute_edge_ts(roi_mat):
 
@@ -83,7 +85,7 @@ class NiftiEdgeAtlas():
                 assert events.endswith("events.tsv")
                 events_mat = pd.read_csv(events, sep="\t")
 
-                task_conf = create_task_confounders(frame_times, events_mat, 
+                task_conf = create_task_confounders(frame_times, events_mat,
                                                     fir_delays=self.fir_delays)
             else:
                 # You can supply a given task matrix to denoise
@@ -91,38 +93,37 @@ class NiftiEdgeAtlas():
         else:
             task_conf = np.array([]).reshape(n_scans, 0)
 
-        #self.task_conf_ = task_conf
-        
-        # 3-Create matrix of drifts        
+        # 3-Create matrix of drifts
         if (self.high_pass is not None) | (self.low_pass is not None):
-            drifts_mat = band_pass_dct(high_pass = self.high_pass, 
-                                       low_pass = self.low_pass, 
+            drifts_mat = band_pass_dct(high_pass = self.high_pass,
+                                       low_pass = self.low_pass,
                                        frame_times = frame_times)
         else:
             drifts_mat = np.array([]).reshape(n_scans, 0)
-        
+
         # 4- Create other confounders matrix
         if confounds is None:
             conf_mat = np.array([]).reshape(n_scans, 0)
         else:
             conf_mat = check_array(confounds)
-            
+
         # 5-Create denoising matrix
         denoise_mat = np.column_stack((task_conf, conf_mat, drifts_mat))
         self.denoise_mat_ = denoise_mat
-        
+
         if denoise_mat.shape[1] > 0:
             atlas_roi_ts_denoised = denoise(X=denoise_mat, Y = atlas_roi_ts)
         else:
             atlas_roi_ts_denoised = atlas_roi_ts
-        
+
         self.atlas_roi_denoised_ = atlas_roi_ts_denoised
-        
+
         # 6-Standardize data
         atlas_ts_clean =  standardize(atlas_roi_ts_denoised)
 
         edge_ts = compute_edge_ts(atlas_ts_clean)
-        edge_img = new_img_like(run_img, edge_ts, affine = np.eye(4)) # Add fake affine (old was:run_img.affine)
+         # Create new image, adding fake affine (old was:run_img.affine)
+        edge_img = new_img_like(run_img, edge_ts, affine = np.eye(4))
 
         return edge_img
 
@@ -130,5 +131,7 @@ class NiftiEdgeAtlas():
                       run_img,
                       events = None,
                       confounds = None):
-        
-        return self.fit().transform(run_img, events = events,confounds = confounds)
+
+        return self.fit().transform(run_img,
+                                    events = events,
+                                    confounds = confounds)
