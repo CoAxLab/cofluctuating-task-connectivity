@@ -109,7 +109,7 @@ for task_id in ["stroop", "msit"]:
               peak_coords)
 
         output_dir = opj(project_dir,
-                         "results/edge_imgs/seed/task-%s" % task_id,
+                         "results/edge_imgs/seed_gsr/task-%s" % task_id,
                          peak_type)
         Path(output_dir).mkdir(exist_ok=True, parents=True)
 
