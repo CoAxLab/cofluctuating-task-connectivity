@@ -102,3 +102,25 @@ def t_to_r(t, df):
     sign = np.sign(t)
     rsquare = t**2/(t**2 + df)
     return sign*np.sqrt(rsquare)
+
+def map_on_atlas(stat_data, atlas_img):
+    """
+    Function to map a statistical map
+    """
+    from nilearn import image
+    atlas_img = image.load_img(atlas_img)
+    n_rois = len(np.unique(atlas_img.get_fdata()))-1
+    stat_data = np.squeeze(stat_data)
+    if stat_data.ndim > 1:
+        raise ValueError("input stat data should be a vector")
+    if len(stat_data) != n_rois:
+        raise ValueError("stat componentes do not match"
+                         " the number of ROIS of the atlas")
+    atlas_img_data = atlas_img.get_fdata()
+    stat_on_atlas = np.zeros_like(atlas_img_data)
+    
+    for ii in range(n_rois):
+        stat_on_atlas[atlas_img_data==(ii+1)] = stat_data[int(ii)]
+    
+    stat_on_atlas_img = image.new_img_like(atlas_img, stat_on_atlas)
+    return stat_on_atlas_img
