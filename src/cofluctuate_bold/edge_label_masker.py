@@ -38,6 +38,7 @@ class NiftiEdgeAtlas():
                  low_pass = None,
                  high_pass= None,
                  t_r = None,
+                 hrf_model = "fir",
                  fir_delays=[0]
                 ):
 
@@ -46,6 +47,7 @@ class NiftiEdgeAtlas():
         self.low_pass = None # For the moment and this project, only high_pass
         self.high_pass = high_pass
         self.t_r = t_r
+        self.hrf_model = hrf_model
         self.fir_delays = fir_delays
 
     def fit(self):
@@ -77,7 +79,7 @@ class NiftiEdgeAtlas():
         #TODO: See if it makes sense to create a function for this
         # or a base class that has this method
 
-        # 2-Load and compute FIR events
+        # 2-Load and compute task confounders matrix
         task_conf = None
         if events is not None:
             if isinstance(events, str):
@@ -86,6 +88,7 @@ class NiftiEdgeAtlas():
                 events_mat = pd.read_csv(events, sep="\t")
 
                 task_conf = create_task_confounders(frame_times, events_mat,
+                                                    hrf_model=self.hrf_model,
                                                     fir_delays=self.fir_delays)
             else:
                 # You can supply a given task matrix to denoise
