@@ -7,7 +7,7 @@ _T_R = 2.0
 _HIGH_PASS = 1/187.
 _DETREND = False
 _FIR_DELAYS = list(range(1, 13)) # NEW: Modelling response up to 24 secs #list(range(1,10))
-
+_HRF_MODEL_EDGE_DENOISE = "fir"
 def get_denoise_opts():
     
     denoise_dict = dict()
@@ -15,7 +15,7 @@ def get_denoise_opts():
     denoise_dict['high_pass'] = _HIGH_PASS
     denoise_dict['detrend'] = _DETREND
     denoise_dict['fir_delays'] = _FIR_DELAYS
-    
+    denoise_dict['hrf_model'] = _HRF_MODEL_EDGE_DENOISE
     print("getting denoise options: ", denoise_dict)
     
     return denoise_dict
@@ -51,7 +51,7 @@ def get_first_level_edge_opts():
 
 _HRF_MODEL_NODE = "glover + derivative + dispersion"
 _DRIFT_MODEL_NODE = 'cosine'
-_SMOOTHING_FWHM_NODE = 6
+_SMOOTHING_FWHM_NODE = None
 
 def get_first_level_node_opts():
     
