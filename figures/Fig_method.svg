@@ -624,14 +624,14 @@
      borderopacity="1.0"
      inkscape:pageopacity="1"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.42"
+     inkscape:zoom="0.81"
      inkscape:cx="351.70797"
-     inkscape:cy="265.89516"
+     inkscape:cy="463.34343"
      inkscape:document-units="mm"
-     inkscape:current-layer="g6029"
+     inkscape:current-layer="g1523"
      inkscape:document-rotation="0"
      showgrid="false"
-     showguides="true"
+     showguides="false"
      inkscape:window-width="1920"
      inkscape:window-height="995"
      inkscape:window-x="0"
@@ -1011,14 +1011,14 @@
             <ellipse
                style="opacity:0.409638;fill:none;fill-opacity:1;stroke:#1f77b4;stroke-width:1.97117;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
                id="path4358"
-               cx="-50.26936"
+               cx="-47.26936"
                cy="131.5249"
                rx="17.764645"
                ry="17.363205" />
             <ellipse
                style="opacity:0.409638;fill:none;stroke:#ff7f0e;stroke-width:1.8881;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
                id="path4358-3"
-               cx="19.649086"
+               cx="40.649086"
                cy="131.37094"
                rx="17.007309"
                ry="16.640123" />
@@ -1033,8 +1033,8 @@
                clip-path="url(#clipPath4476)"
                transform="matrix(0.56802026,0,0,0.56802026,-404.66949,243.57041)" />
             <path
-               style="fill:#800000;stroke:#000000;stroke-width:1.41732;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker4710)"
-               d="M 13.76992,147.91624 -8.7456822,167.15908"
+               style="fill:#800000;stroke:#000000;stroke-width:1.41732283;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker4710)"
+               d="M 23.457776,139.61436 -8.1575127,166.6342"
                id="path4598"
                sodipodi:nodetypes="cc" />
             <path
@@ -1201,7 +1201,7 @@
                  transform="translate(16.679687)">
                 <g
                    id="g1449"
-                   transform="translate(-5.5566402)">
+                   transform="translate(-8.4448238)">
                   <text
                      xml:space="preserve"
                      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20px;line-height:1.25;font-family:Arial;-inkscape-font-specification:Arial;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;white-space:pre;inline-size:346.519;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.98425;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none"
@@ -1211,7 +1211,9 @@
                      transform="translate(265.70998,385.10386)"><tspan
                        x="-563.75299"
                        y="-357.81348"><tspan
-                         style="stroke-linecap:butt;stroke-linejoin:round">r = </tspan><tspan
+                         style="stroke-linecap:butt;stroke-linejoin:round">r</tspan><tspan
+                         style="font-size:65%;baseline-shift:sub;stroke-linecap:butt;stroke-linejoin:round">ij</tspan><tspan
+                         style="stroke-linecap:butt;stroke-linejoin:round"> = </tspan><tspan
                          style="font-size:24px;stroke-linecap:butt;stroke-linejoin:round">{</tspan><tspan
                          style="stroke-linecap:butt;stroke-linejoin:round">z</tspan><tspan
                          style="font-size:65%;baseline-shift:sub;stroke-linecap:butt;stroke-linejoin:round">i</tspan><tspan
@@ -1287,46 +1289,51 @@
             </g>
             <g
                id="g5378"
-               transform="translate(40.814769)">
+               transform="translate(22.064769)">
               <g
-                 id="g2141"
-                 transform="translate(11.679197,10.5)">
-                <text
-                   xml:space="preserve"
-                   style="font-style:normal;font-weight:normal;font-size:20px;line-height:1.25;font-family:Arial;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.75"
-                   x="-210.88617"
-                   y="127.47166"
-                   id="text10538"><tspan
-                     sodipodi:role="line"
-                     id="tspan10536"
+                 id="g1657">
+                <g
+                   id="g2141"
+                   transform="translate(11.679197,10.5)">
+                  <text
+                     xml:space="preserve"
+                     style="font-style:normal;font-weight:normal;font-size:20px;line-height:1.25;font-family:Arial;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.75"
                      x="-210.88617"
                      y="127.47166"
-                     style="font-size:20px;stroke-width:0.75">r = α + β<tspan
-   style="font-size:13px;baseline-shift:sub"
-   id="tspan10561">con</tspan>I<tspan
+                     id="text10538"><tspan
+                       sodipodi:role="line"
+                       id="tspan10536"
+                       x="-210.88617"
+                       y="127.47166"
+                       style="font-size:20px;stroke-width:0.75">r<tspan
+   id="tspan1369"
+   style="font-size:65%;baseline-shift:sub">ij</tspan> =  α + β<tspan
+   id="tspan10561"
+   style="font-size:13px;baseline-shift:sub">con</tspan>· t<tspan
    style="font-size:65%;baseline-shift:sub"
-   id="tspan1739">con</tspan>+ β<tspan
-   style="font-size:13px;baseline-shift:sub"
-   id="tspan10555">inc</tspan>I<tspan
+   id="tspan1415">con</tspan>+ β<tspan
+   id="tspan10555"
+   style="font-size:13px;baseline-shift:sub">inc </tspan>· t<tspan
    style="font-size:65%;baseline-shift:sub"
-   id="tspan1737">inc</tspan> + ε</tspan></text>
+   id="tspan1427">inc</tspan> + ε</tspan></text>
+                </g>
+                <path
+                   style="fill:none;stroke:#000000;stroke-width:0.80196;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:1;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1528-6-3-5)"
+                   d="m -199.33392,124.39492 h 10.62051"
+                   id="path1252-2-9-3" />
+                <path
+                   style="fill:none;stroke:#000000;stroke-width:0.80196;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:1;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1528-6-3-5-6)"
+                   d="m -83.20347,121.39492 h 10.62051"
+                   id="path1252-2-9-3-0" />
+                <path
+                   style="fill:none;stroke:#000000;stroke-width:0.80196;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:1;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1528-6-3-5-63)"
+                   d="m 3.796527,121.39492 h 10.62051"
+                   id="path1252-2-9-3-06" />
+                <path
+                   style="fill:none;stroke:#000000;stroke-width:0.80196;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:1;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1528-6-3-5-1)"
+                   d="m 50.442868,124.39492 h 10.62051"
+                   id="path1252-2-9-3-5" />
               </g>
-              <path
-                 style="fill:none;stroke:#000000;stroke-width:0.80196;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:1;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1528-6-3-5)"
-                 d="m -199.33392,124.39492 h 10.62051"
-                 id="path1252-2-9-3" />
-              <path
-                 style="fill:none;stroke:#000000;stroke-width:0.80196;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:1;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1528-6-3-5-6)"
-                 d="m -104.20347,121.39492 h 10.62051"
-                 id="path1252-2-9-3-0" />
-              <path
-                 style="fill:none;stroke:#000000;stroke-width:0.80196;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:1;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1528-6-3-5-63)"
-                 d="m -32.203473,121.39492 h 10.62051"
-                 id="path1252-2-9-3-06" />
-              <path
-                 style="fill:none;stroke:#000000;stroke-width:0.80196;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:1;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1528-6-3-5-1)"
-                 d="m 12.942868,124.39492 h 10.62051"
-                 id="path1252-2-9-3-5" />
             </g>
             <g
                id="g6219"
