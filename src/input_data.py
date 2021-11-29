@@ -10,6 +10,16 @@ def get_bold_files(task_id, bold_dir, subjects):
  
     return run_imgs
 
+def get_brainmask_files(task_id, mask_dir, subjects):
+    """
+    Function to load the fMRIPrep preprocessed BOLD images
+    """
+
+    mask_pattern = opj(mask_dir, "sub-%d_ses-01" + "_task-%s_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz" % task_id)
+    mask_imgs = [mask_pattern % subj for subj in subjects]
+ 
+    return mask_imgs
+
 
 def get_confounders_df(task_id, confounders_dir, subjects, confounders_regex="trans|rot|white_matter$|csf$"):
     """

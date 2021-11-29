@@ -15,12 +15,12 @@ import sys
 #from cofluctuate_bold import NiftiEdgeAtlas
 
 
-def compute_edge_img(run_img, event_file, confounds, atlas_file, denoise_opts, output_dir):
+def compute_edge_img(run_img, event_file, confounds, atlas_file, mask_img, denoise_opts, output_dir):
     """
     Auxiliary function to compute and save the edge time series
     to be used in parallel.
     """
-    edge_atlas =  NiftiEdgeAtlas(atlas_file = atlas_file, **denoise_opts)
+    edge_atlas =  NiftiEdgeAtlas(atlas_file=atlas_file, mask_img=mask_img,  **denoise_opts)
     edge_ts_img = edge_atlas.fit_transform(run_img = run_img, events = event_file, confounds = confounds)
     filename = Path(run_img).name.replace("desc-preproc_bold", "desc-edges_bold")
 
@@ -35,7 +35,7 @@ def compute_edge_img(run_img, event_file, confounds, atlas_file, denoise_opts, o
 project_dir = "/home/javi/Documentos/cofluctuating-task-connectivity"
 sys.path.append(project_dir)
 from src import get_denoise_opts
-from src.input_data import get_bold_files, get_confounders_df
+from src.input_data import get_bold_files, get_confounders_df, get_brainmask_files
 from src.cofluctuate_bold import NiftiEdgeAtlas
 # Data directory
 data_dir = opj(project_dir, "data")
@@ -69,6 +69,12 @@ for task_id in ["stroop", "msit", "rest"]:
                               bold_dir = bold_dir,
                               subjects = final_subjects)
 
+    # Get brainmasks bold images
+    mask_dir = opj(data_dir, "brainmasks", "task-%s" % task_id)
+    mask_imgs = get_brainmask_files(task_id = task_id,
+                              mask_dir = mask_dir,
+                              subjects = final_subjects)
+
     # Get confounders files
     confounders_dir = opj(data_dir, "confounders", "task-%s" % task_id)
     conf_dfs = get_confounders_df(task_id = task_id,
@@ -81,7 +87,8 @@ for task_id in ["stroop", "msit", "rest"]:
     else:
         event_file = opj(data_dir, "task-%s_events.tsv" % task_id)
 
-    output_dir = opj(project_dir, "results/edge_imgs_gsr/shen/task-%s" % task_id)
+#    output_dir = opj(project_dir, "results/edge_imgs_gsr/shen/task-%s" % task_id)
+    output_dir = opj(project_dir, "results/edge_imgs_gsr_brainmask/shen/task-%s" % task_id)
     Path(output_dir).mkdir(exist_ok=True, parents=True)
     # This is to save intermediate files
     Path(opj(output_dir, "denoised_roi_time_series")).mkdir(exist_ok = True, parents = True)
@@ -93,8 +100,9 @@ for task_id in ["stroop", "msit", "rest"]:
                                        event_file = event_file,
                                        confounds = conf_df,
                                        atlas_file = atlas_file,
+                                       mask_img = mask_img,
                                        denoise_opts = denoise_opts,
-                                       output_dir = output_dir) for run_img, conf_df in tqdm(zip(run_imgs, conf_dfs))
+                                       output_dir = output_dir) for run_img, conf_df, mask_img in tqdm(zip(run_imgs, conf_dfs, mask_imgs))
             )
 
     del parallel

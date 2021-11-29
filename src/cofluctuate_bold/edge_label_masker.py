@@ -34,6 +34,7 @@ class NiftiEdgeAtlas():
 
     def __init__(self,
                  atlas_file,
+                 mask_img = None,
                  detrend = False,
                  low_pass = None,
                  high_pass= None,
@@ -43,6 +44,7 @@ class NiftiEdgeAtlas():
                 ):
 
         self.atlas_file = atlas_file
+        self.mask_img = mask_img
         self.detrend = detrend
         self.low_pass = None # For the moment and this project, only high_pass
         self.high_pass = high_pass
@@ -69,6 +71,7 @@ class NiftiEdgeAtlas():
 
         # 1- Parcellate data
         label_masker = NiftiLabelsMasker(labels_img = self.atlas_file,
+                                         mask_img = self.mask_img,
                                          detrend = None,
                                          low_pass = None,
                                          high_pass = None,
@@ -126,7 +129,7 @@ class NiftiEdgeAtlas():
 
         edge_ts = compute_edge_ts(atlas_ts_clean)
          # Create new image, adding fake affine (old was:run_img.affine)
-        edge_img = new_img_like(run_img, edge_ts, affine = np.eye(4))
+        edge_img = new_img_like(run_img, edge_ts.astype(np.float32), affine = np.eye(4))
 
         return edge_img
 

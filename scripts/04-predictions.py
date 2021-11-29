@@ -33,16 +33,10 @@ def load_data(task_id):
         edge_data_2d = np.row_stack([squareform(edge_img_data[:,:,ii], checks=False) for ii in range(n_scans)])
         edge_imgs_2d.append(edge_data_2d)
 
-    base_dir = opj(project_dir, "data/confounders/task-%s" % task_id)
-    filename = "sub-%d_ses-01" + "_task-%s_desc-confounds_regressors.tsv" % task_id
-    pattern = opj(base_dir, filename)
-    motion_df = [pd.read_csv(pattern % subj, sep="\t").filter(regex="motion_outlier").to_numpy() \
-                  for subj in final_subjects]
-
-    return edge_imgs_2d, motion_df
+    return edge_imgs_2d
 
 
-def estimate_model(idxs, edge_imgs_2d, list_confs):
+def estimate_model(idxs, edge_imgs_2d):
 
     from sklearn.linear_model import LinearRegression
     import numpy as np
@@ -55,10 +49,9 @@ def estimate_model(idxs, edge_imgs_2d, list_confs):
     for ix in idxs:
         # Edge time series
         Y = edge_imgs_2d[ix,:,:]
-        C = list_confs[ix]
 
-        linReg.fit(np.column_stack((X,C)), Y)
-        first_level_betas.append(linReg.coef_[:,:6])
+        linReg.fit(X, Y)
+        first_level_betas.append(linReg.coef_)
         first_level_intercepts.append(linReg.intercept_)
 
     betas_avg = np.array(first_level_betas).mean(axis=0)
@@ -70,7 +63,6 @@ def prediction(intercepts_avg, betas_avg):
     return intercepts_avg + X.dot(betas_avg.T)
 
 def _compute_score_cv(within_task,
-                      confs_within,
                       between_task,
                       n_splits,
                       seed):
@@ -92,7 +84,7 @@ def _compute_score_cv(within_task,
 
     for i_split, (train_idxs, test_idxs) in enumerate(cv.split(dummy_X)):
         # Estimate model
-        intercepts_avg, betas_avg = estimate_model(train_idxs, within_task, confs_within)
+        intercepts_avg, betas_avg = estimate_model(train_idxs, within_task)
 
         # Prediction using this estimation
         Y_pred = prediction(intercepts_avg, betas_avg)
@@ -155,7 +147,8 @@ con_regressor = np.squeeze(con_regressor)
 
 X = np.column_stack((inc_regressor, con_regressor))
 
-output_dir = Path(opj(project_dir, "results/generalizability/gsr"))
+#output_dir = Path(opj(project_dir, "results/generalizability/gsr"))
+output_dir = Path(opj(project_dir, "results/predictions/gsr"))
 output_dir.mkdir(exist_ok=True, parents=True)
 output_dir = output_dir.resolve().as_posix()
 
@@ -165,7 +158,7 @@ print("Loading data...")
 
 temp_dir = tempfile.mkdtemp()
 
-edges_stroop, list_confs_stroop = load_data(task_id="stroop")
+edges_stroop = load_data(task_id="stroop")
 edges_stroop = np.array(edges_stroop)
 # Convert edges data to memmap array, in order not to blow RAM memory
 edges_stroop_mem = np.memmap(temp_dir + "/" + "edges_stroop.npy",
@@ -175,7 +168,7 @@ edges_stroop_mem = np.memmap(temp_dir + "/" + "edges_stroop.npy",
 edges_stroop_mem[:] = edges_stroop[:]
 del edges_stroop
 
-edges_msit, list_confs_msit = load_data(task_id="msit")
+edges_msit = load_data(task_id="msit")
 edges_msit = np.array(edges_msit)
 # Convert edges data to memmap array, in order not to blow RAM memory
 edges_msit_mem = np.memmap(temp_dir + "/" + "edges_msit..npy",
@@ -194,7 +187,6 @@ print("Stroop as training...")
 
 parallel = Parallel(n_jobs=n_jobs)
 res = parallel(delayed(_compute_score_cv)(within_task = edges_stroop_mem,
-                                          confs_within = list_confs_stroop,
                                           between_task =  edges_msit_mem,
                                           n_splits = n_splits,
                                           seed= seed)
@@ -222,7 +214,6 @@ print("MSIT as training...")
 
 parallel = Parallel(n_jobs=n_jobs)
 res = parallel(delayed(_compute_score_cv)(within_task = edges_msit_mem,
-                                          confs_within = list_confs_msit,
                                           between_task =  edges_stroop_mem,
                                           n_splits = n_splits,
                                           seed= seed)
