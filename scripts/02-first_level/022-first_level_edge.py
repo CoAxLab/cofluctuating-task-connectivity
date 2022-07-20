@@ -3,8 +3,6 @@
 
 # Compute the first level maps for edge time series.
 # The independent variables are just the task regressors.
-# In a sensitivity analysis, we test what happens when 
-# we inlcude censoring volumes
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -73,7 +71,7 @@ def edge_img_first_level(run_img,
 data_dir = opj(project_dir, "data")
 
 #Subject to use
-final_subjects = np.loadtxt(opj(data_dir, "subjects_intersect_motion_035.txt"))
+final_subjects = np.loadtxt(opj(data_dir, "subjects_intersect_motion_035_brainmask.txt"))
 print("first 10 subjects: ", final_subjects[:10])
 
 # Shen Atlas
@@ -98,7 +96,9 @@ for task_id in ["stroop", "msit", "rest"]:
     print("computing first-level edge maps for task %s" % task_id)
 
     # Get preprocessed bold images
-    edge_imgs_dir = opj(project_dir, "results/edge_imgs_gsr/shen", "task-%s" % task_id)
+#    edge_imgs_dir = opj(project_dir, "results/edge_imgs_gsr/shen", "task-%s" % task_id)
+    edge_imgs_dir = opj(project_dir, "results/edge_imgs_brainmask/gsr/shen", "task-%s" % task_id)
+
     edge_bold_imgs = get_edge_files(task_id = task_id,
                                      edges_bold_dir = edge_imgs_dir,
                                      subjects = final_subjects)
@@ -121,7 +121,9 @@ for task_id in ["stroop", "msit", "rest"]:
     print("regressors: ", design_matrix.columns)
     print("contrasts: ", contrasts)
 
-    output_dir = opj(project_dir, "results/first-level/edge_gsr/shen", "task-%s" % task_id)
+#    output_dir = opj(project_dir, "results/first-level/edge_gsr/shen", "task-%s" % task_id)
+    output_dir = opj(project_dir, "results/first-level/gsr/edge/shen", "task-%s" % task_id)
+
     Path(output_dir).mkdir(exist_ok=True, parents=True)
 
     # Save design matrix

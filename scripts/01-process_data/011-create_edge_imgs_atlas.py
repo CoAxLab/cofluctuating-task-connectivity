@@ -30,6 +30,11 @@ def compute_edge_img(run_img, event_file, confounds, atlas_file, mask_img, denoi
             edge_atlas.denoise_mat_)  # JAVI: remove this for earlier version
     edge_ts_img.to_filename(opj(output_dir, filename))
 
+case = str(sys.argv[1])
+
+check_case = (case == "gsr") or  (case == "nogsr")
+if  check_case is False:
+    raise ValueError("case should be either 'gsr' or 'nogsr'")
 
 # Project directory
 project_dir = "/home/javi/Documentos/cofluctuating-task-connectivity"
@@ -48,7 +53,11 @@ print("first 10 subjects: ", final_subjects[:10])
 atlas_file = opj(data_dir, "atlases", "shen_2mm_268_parcellation.nii.gz")
 print("atlas file: ", atlas_file)
 
-confounders_regex = "trans|rot|white_matter$|csf$|global_signal$"
+if case == "gsr":
+    confounders_regex = "trans|rot|white_matter$|csf$|global_signal$"
+else:
+    confounders_regex = "trans|rot|white_matter$|csf$"
+
 print("nuisance covariates: ", confounders_regex)
 
 # Get denoise options
@@ -88,7 +97,7 @@ for task_id in ["stroop", "msit", "rest"]:
         event_file = opj(data_dir, "task-%s_events.tsv" % task_id)
 
 #    output_dir = opj(project_dir, "results/edge_imgs_gsr/shen/task-%s" % task_id)
-    output_dir = opj(project_dir, "results/edge_imgs_gsr_brainmask/shen/task-%s" % task_id)
+    output_dir = opj(project_dir, f"results/edge_imgs_brainmask/{case}/shen/task-%s" % task_id)
     Path(output_dir).mkdir(exist_ok=True, parents=True)
     # This is to save intermediate files
     Path(opj(output_dir, "denoised_roi_time_series")).mkdir(exist_ok = True, parents = True)

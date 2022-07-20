@@ -1,3 +1,5 @@
+# Compute first-level activation maps at the region level.
+
 import numpy as np
 import pandas as pd
 from os.path import join as opj
@@ -14,7 +16,7 @@ from nilearn.glm.second_level import SecondLevelModel
 project_dir = "/home/javi/Documentos/cofluctuating-task-connectivity"
 sys.path.append(project_dir)
 
-from src.input_data import get_bold_files, get_confounders_df
+from src.input_data import get_bold_files, get_confounders_df, get_brainmask_files
 from src import get_first_level_node_opts
 from src.first_level import get_contrasts
 
@@ -87,33 +89,17 @@ def run_first_level(run_img,
     return fmri_glm
 
 
-def compute_roi_imgs(run_img, atlas_file):
+def compute_roi_imgs(run_img, atlas_file, brain_mask):
     from nilearn.input_data import NiftiLabelsMasker
     from nilearn.image import new_img_like
 
-    label_masker = NiftiLabelsMasker(labels_img = atlas_file)
+    label_masker = NiftiLabelsMasker(labels_img = atlas_file, mask_img=brain_mask)
     roi_ts = label_masker.fit_transform(imgs=run_img)
     # Create fake NIFTI img
     roi_ts = roi_ts.T # Time as the second dimension
     roi_ts_4d = roi_ts[:,None,None,:] # Pad two new dimensions
     roi_img = new_img_like(run_img, roi_ts_4d, affine = np.eye(4)) # Add fake affine (old was:run_img.affine)
     return roi_img
-
-
-def save_second_level(second_level, contrast, atlas_file, output_dir):
-    """
-    Function just to save first level results for a set of
-    contrasts
-    """
-    from nilearn.image import new_img_like
-
-    res_dict = second_level.compute_contrast(first_level_contrast=contrast, output_type="all")
-
-    for name_res, res_img in res_dict.items():
-        res_img.to_filename(opj(output_dir, name_res + ".nii.gz"))
-
-        res_img_shen = map_to_atlas(res_img, atlas_file)
-        res_img_shen.to_filename(opj(output_dir, name_res + "_shen.nii.gz"))
 
 
 # Data directory
@@ -152,8 +138,16 @@ for task_id in ["stroop", "msit"]:
                               bold_dir = bold_dir,
                               subjects = final_subjects)
 
+    # Get brainmasks bold images
+    mask_dir = opj(data_dir, "brainmasks", "task-%s" % task_id)
+    mask_imgs = get_brainmask_files(task_id = task_id,
+                              mask_dir = mask_dir,
+                              subjects = final_subjects)
+
+
     # Compute ROI time series imgs
-    roi_imgs = parallel(delayed(compute_roi_imgs)(img, atlas_file) for img in run_imgs)
+    roi_imgs = parallel(delayed(compute_roi_imgs)(bold_img, atlas_file, brain_mask) \
+        for bold_img, brain_mask in zip(run_imgs, mask_imgs))
 
     # Get confounders files
     confounders_dir = opj(data_dir, "confounders", "task-%s" % task_id)
@@ -179,11 +173,13 @@ for task_id in ["stroop", "msit"]:
     print("columns ",  design_matrices[0].columns)
 
     # Get contrasts
-    contrasts = get_contrasts(intercept_only=False)
+#    contrasts = get_contrasts(intercept_only=False)
+    contrasts = ["Incongruent-Congruent"] #  for this case we don't need more
     print("contrasts: ", contrasts)
 
     # Define output directory for first-level results
-    output_dir = opj(project_dir, "results/first-level/node_gsr_roi/task-%s" % task_id)
+#    output_dir = opj(project_dir, "results/first-level/node_gsr_roi/task-%s" % task_id)
+    output_dir = opj(project_dir, "results/first-level/gsr/node_roi/task-%s" % task_id)
     Path(output_dir).mkdir(exist_ok=True, parents=True)
 
     list_first_levels = parallel(delayed(run_first_level)(run_img = run_img,
