@@ -44,6 +44,21 @@ def denoise(X, Y):
     
     return Y_clean
 
+def denoise_w_task(X, Y, T):
+    
+    # Compute mean data
+    X_offset = np.mean(X, axis=0)
+    Y_offset = np.mean(Y, axis=0)
+    T_offset = np.mean(T, axis=0)
+     
+
+    # Compute coefficients
+    beta, _, _, _ = np.linalg.lstsq(np.column_stack((X - X_offset, T - T_offset)), Y-Y_offset, rcond=None)
+    
+    Y_clean = Y - X @ beta[:X.shape[1],:]
+    
+    return Y_clean
+
 def standardize(X):
     
     mu = X.mean(axis=0)
@@ -53,7 +68,7 @@ def standardize(X):
     Z = (X - mu)/std
     
     return Z
-        
+
 def band_pass_dct(high_pass, low_pass, frame_times):
     """Create a cosine drift matrix with periods greater or equals to period_cut
     Parameters
@@ -68,38 +83,38 @@ def band_pass_dct(high_pass, low_pass, frame_times):
              cosin drifts plus a constant regressor at cdrift[:,0]
     Ref: http://en.wikipedia.org/wiki/Discrete_cosine_transform DCT-II
     """
-    
+
     if (high_pass is None) & (low_pass is None):
         raise(ValueError("No frequency passed"))
-    
+
     if (high_pass is not None) & (low_pass is not None):
         if low_pass < high_pass: 
             raise(ValueError("Low pass has to be greater than high pass"))
-    
+
     # frametimes.max() should be (len_tim-1)*dt
     dt = frame_times[1] - frame_times[0]
     f_max = 0.5*(1/dt) # nyquist frequency
-    
+
     if low_pass:
         if low_pass > f_max:
             low_pass = None # this means it just perform a high-pass filtering
-    
+
     len_tim = len(frame_times)
     n_times = np.arange(len_tim)
-    
+
     k_max = int(len_tim)
 #    print("k_max: ", k_max)
-    
+
     hp_order,lp_order = [],[]
     if high_pass:
         k_hp = max(int(np.floor(2 * len_tim * high_pass * dt)), 1)
  #       print("k_hp: ", k_hp)
-        hp_order = np.arange(1, k_hp)
+        hp_order = np.arange(1, k_hp + 1) # This +1 is to have the same as in nilearn https://github.com/nilearn/nilearn/blob/1607b52458c28953a87bbe6f42448b7b4e30a72f/nilearn/glm/first_level/design_matrix.py#L80
     if low_pass:
         k_lp = max(int(np.ceil(2 * len_tim * low_pass * dt)), 1)
   #      print("k_lp: ", k_lp)
-        lp_order = np.arange(k_lp, k_max)
-        
+        lp_order = np.arange(k_lp-1, k_max) # This -1 does not affect for our study
+
     orders = np.concatenate((hp_order, lp_order))
     # hfcut = 1/(2*dt) yields len_time
     # If series is too short, return constant regressor
@@ -112,3 +127,34 @@ def band_pass_dct(high_pass, low_pass, frame_times):
 
     #cdrift[:, order - 1] = 1.0  # or 1./sqrt(len_tim) to normalize
     return cdrift
+
+def ar_whiten(X):
+    """
+    Whiten time series matrix using an AR(1) model
+
+    Parameters
+    ----------
+    X : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
+    from statsmodels.regression.linear_model import yule_walker
+
+    np.warnings.filterwarnings('ignore',category=np.VisibleDeprecationWarning)
+    # Demean time series. This would be just removing the intercept from
+    # the denoised time series
+    
+    X = X - X.mean(0)
+
+    ar_coefs, _ = np.apply_along_axis(yule_walker, 0, X, demean=False)
+    ar_coefs = np.concatenate(ar_coefs)
+
+    whitened_X = X.copy()
+
+    whitened_X[1:] = whitened_X[1:] - ar_coefs * X[0:-1]
+
+    return whitened_X
