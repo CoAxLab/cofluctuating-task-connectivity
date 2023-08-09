@@ -1,0 +1,12 @@
+edge_denoise_opts:
+  detrend: False
+  hrf_model: None
+  high_pass: !fraction 1/187
+  denoise_task: False
+
+hrf_model: None
+noise_model: 'ols'
+high_pass: !fraction 1/187
+drift_model: 'cosine'
+standardize: True
+gsr: True
