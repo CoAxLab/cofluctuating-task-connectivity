@@ -1,4 +1,4 @@
-# Similarity in evoked responses does not imply similarity in macroscopic network states across tasks
+# Similarity in evoked responses does not imply similarity in macroscopic network states
 
 Repository that contains the codes, notebooks, results and plots for the paper:
 
