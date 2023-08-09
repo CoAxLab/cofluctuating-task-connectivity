@@ -45,3 +45,16 @@ def get_edge_files(task_id, edges_bold_dir, subjects):
     run_imgs = [edges_pattern % subj for subj in subjects]
  
     return run_imgs
+
+def get_bold_roi_files(task_id, bold_roi_dir, subjects):
+    """
+    Function to load the computed edge time series images
+    """
+
+    file_pattern = opj(
+        bold_roi_dir, 
+        "sub-%d_ses-01" + f"_task-{task_id}_space-MNI152NLin2009cAsym_desc-preproc_res-ROI_bold.nii.gz"
+        )
+    bold_roi_imgs = [file_pattern % subj for subj in subjects]
+ 
+    return bold_roi_imgs

@@ -2,6 +2,75 @@ import pandas as pd
 import numpy as np
 from nilearn import glm
 
+def load_config_file(yaml_file):
+    import yaml  
+
+    from fractions import Fraction
+
+    def fraction_constructor(loader, node):
+        value = loader.construct_scalar(node)
+        return float(Fraction(value))
+
+    yaml.add_constructor('!fraction', fraction_constructor)
+
+    with open(yaml_file, 'r') as file:   
+        config_dat = yaml.load(file, Loader=yaml.FullLoader)
+    
+    pass_tests = True
+    keys = ['edge_denoise_opts', 'hrf_model', 
+            'noise_model', 'high_pass', 
+            'drift_model', 'standardize', 
+            'gsr']
+    
+    for key in keys:
+        if key not in list(config_dat.keys()):
+            pass_tests = False
+            
+    if pass_tests:
+        if "denoise_task" not in list(config_dat['edge_denoise_opts'].keys()):
+            pass_tests = False
+            
+    assert pass_tests
+    
+    # Convert any "None" to None
+    for key, value in config_dat.items():
+        if value == "None":
+            config_dat[key] = None
+        
+    for key, value in config_dat['edge_denoise_opts'].items():
+        if value == "None":
+            config_dat['edge_denoise_opts'][key] = None
+            
+    # If hrf model in edge_denoise_opts is equal to "fir", set the delays to account for a modelling response of up to 24 secs 
+    if config_dat['edge_denoise_opts']['hrf_model'] == 'fir':
+    	config_dat['edge_denoise_opts']['fir_delays'] = list(range(1, 13))
+    else:
+    	config_dat['edge_denoise_opts']['fir_delays'] = [0]
+    return config_dat
+
+def create_case_outdir(case_opts):
+
+    output_dir = "pipeline"
+    output_dir += "_events-" + str(int(case_opts['edge_denoise_opts']['denoise_task']))
+
+    if case_opts['edge_denoise_opts']['hrf_model'] == case_opts['hrf_model']:
+        output_dir += "_denoise-" + "Node"
+    else:
+        output_dir += "_denoise-" + case_opts['edge_denoise_opts']['hrf_model']
+
+    output_dir += "_whiten-" + case_opts['noise_model']
+
+    if case_opts['hrf_model'] is None:
+        output_dir += "_hrf-0"
+    else:
+        output_dir += "_hrf-1"
+
+    output_dir += "_zscore-" + str(int(case_opts['standardize']))
+
+    output_dir += "_gsr-" + str(int(case_opts['gsr']))
+
+    return output_dir
+
 def compute_task_regressors(events_file):
 
     """
